@@ -4,7 +4,7 @@ description: >-
   notification if not home. In the trigger, replace the entity_id with the new 
   input_boolean created; person with the users person entity; phone with what follows
   notify.mobile_app_ when sending notifications to that users phone, and name with
-  the name you want used if a notification is sent followed by apostrophe s.
+  the name you want used if a notification is sent followed by apostrophe s (e.g. John's).
 trigger:
   - platform: state
     entity_id: input_boolean.find_user1name_phone
