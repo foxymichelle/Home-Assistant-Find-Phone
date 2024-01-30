@@ -1,0 +1,5 @@
+input_boolean:
+  find_username1_phone:
+    name: Find UserName1 Phone
+  find_username2_phone:
+    name: Find UserName2 Phone
