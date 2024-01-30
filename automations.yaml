@@ -1,0 +1,131 @@
+alias: Find Phone Trigger
+description: >-
+  When a Find Phone helper is turned on, send notification if at home OR trigger a
+  notification if not home. In the trigger, replace the entity_id with the new 
+  input_boolean created; person with the users person entity; phone with what follows
+  notify.mobile_app_ when sending notifications to that users phone, and name with
+  the name you want used if a notification is sent followed by apostrophe s.
+trigger:
+  - platform: state
+    entity_id: input_boolean.find_user1name_phone
+    to: "on"
+    variables:
+      person: "{{ states('person.user1name') }}"
+      phone: user1_phone
+      name: User1Name's
+  - platform: state
+    entity_id: input_boolean.find_user2name_phone
+    to: "on"
+    variables:
+      person: "{{ states('person.user2name') }}"
+      phone: user2_phone
+      name: User2Name's
+condition: []
+action:
+  - choose:
+      - conditions:
+          - condition: template
+            value_template: |
+              {{ person == 'home' }}
+        sequence:
+          - service: input_boolean.turn_off
+            metadata: {}
+            data: {}
+            target:
+              entity_id: "{{ trigger.entity_id }}"
+          - service: notify.mobile_app_{{ phone }}
+            data:
+              message: Finding Phone
+              data:
+                push:
+                  interruption-level: critical
+                  sound: long-melody-alert.wav
+    default:
+      - service: script.activate_alexa_actionable_notification:
+        metadata: {}
+        data:
+          text: "{{ name }} phone is at {{ person }}. Would you like to proceed?"
+          suppress_confirmation: "false"
+          event_id: trigger_find_phone
+          alexa_device: media_player.your_media_player
+mode: single
+
+
+alias: Find Phone Alexa Response
+description: response to Alexa Actionable Notification asking to trigger find phone if not at home - 
+  send notification if YesResponse; With any response (including Yes as this is a continuation
+  of the action, not the choose default), turn off find_phone and alexa_action_in_progress
+  toggles.
+trigger:
+  - platform: event
+    event_type: alexa_actionable_notification
+    event_data:
+      event_id: trigger_find_phone
+condition: []
+action:
+  - choose:
+      - conditions:
+          - condition: template
+            value_template: "{{ 'ResponseYes' in response_type }}"
+        sequence:
+          - choose:
+              - conditions:
+                  - condition: state
+                    entity_id: input_boolean.find_user1name_phone
+                    state: "on"
+                sequence:
+                  - service: notify.mobile_app_user1_phone
+                    data:
+                      message: Finding Phone
+                      data:
+                        push:
+                          interruption-level: critical
+                          sound: long-melody-alert.wav
+              - conditions:
+                  - condition: state
+                    entity_id: input_boolean.find_user2name_phone
+                    state: "on"
+                sequence:
+                  - service: notify.mobile_app_user2_phone
+                    data:
+                      message: Finding Phone
+                      data:
+                        push:
+                          interruption-level: critical
+                          sound: long-melody-alert.wav
+  - service: input_boolean.turn_off
+    metadata: {}
+    data: {}
+    target:
+      entity_id:
+        - input_boolean.find_foxy
+        - input_boolean.alexa_action_in_progress
+mode: single
+variables:
+  response_type: "{{ trigger.event.data.event_response_type }}"
+  response: "{{ trigger.event.data.event_response }}"
+  event_id: "{{ trigger.event.data.event_id }}"
+  device: media_player.big_dot
+
+
+alias: Find Phone - Auto Off
+description: turn off find phone toggles after 1 minute - catch-all if automations fail
+trigger:
+  - platform: state
+    entity_id:
+      - input_boolean.find_user1name_phone
+      - input_boolean.find_user2name_phone
+    for:
+      hours: 0
+      minutes: 1
+      seconds: 0
+condition: []
+action:
+  - service: input_boolean.turn_off
+    metadata: {}
+    data: {}
+    target:
+      entity_id:
+        - input_boolean.find_user1name_phone
+        - input_boolean.find_user2name_phone
+mode: single
